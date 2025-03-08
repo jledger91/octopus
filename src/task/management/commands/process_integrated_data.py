@@ -1,5 +1,6 @@
 import json
 
+# from django.contrib.gis.geos import Point
 from django.core.management.base import BaseCommand
 
 from src.task.models import (
@@ -60,6 +61,12 @@ class Command(BaseCommand):
                     "country": country,
                     "operator": operator,
                     "coordinates": coordinates,
+                    # TODO: When the __0004_coordinates_as_point_field is
+                    #  applied, the coordinates can be switched.
+                    # "coordinates": Point(
+                    #     float(location_data["coordinates"]["longitude"]),
+                    #     float(location_data["coordinates"]["latitude"]),
+                    # ),
                     "postal_code": location_data["postal_code"],
                 },
             )

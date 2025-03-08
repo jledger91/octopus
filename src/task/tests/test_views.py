@@ -1,3 +1,5 @@
+from unittest import skip
+
 import pytest
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -45,6 +47,90 @@ class LocationListViewTestCase(TestCase):
     def test_location_list_view__403(self):
         response = self.client.get(self.url)
         assert response.status_code == 403
+
+    def test_location_list_view__country_filter(self):
+        self.client.force_login(self.user)
+
+        new_location = LocationFactory()
+        new_location_country_reference = new_location.country.reference
+
+        response = self.client.get(
+            self.url + f"?country={new_location_country_reference}"
+        )
+        assert response.status_code == 200
+
+        data = response.json()
+        assert len(data) == 1
+
+        location = data[0]
+        assert location["country_reference"] == new_location_country_reference
+
+    def test_location_list_view__operator_filter(self):
+        self.client.force_login(self.user)
+
+        new_location = LocationFactory()
+        new_location_operator_reference = new_location.operator.reference
+
+        response = self.client.get(
+            self.url + f"?operator={new_location_operator_reference}"
+        )
+        assert response.status_code == 200
+
+        data = response.json()
+        assert len(data) == 1
+
+        location = data[0]
+        assert (
+            location["operator_reference"] == new_location_operator_reference
+        )
+
+    def test_location_list_view__ordering_filter__created_at_desc(self):
+        self.client.force_login(self.user)
+
+        new_location = LocationFactory()
+
+        response = self.client.get(self.url + "?ordering=created_at_desc")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data[0]["operator_reference"] == new_location.operator.reference
+        assert (
+            data[1]["operator_reference"] == self.location.operator.reference
+        )
+
+    def test_location_list_view__ordering_filter__updated_at_desc(self):
+        self.client.force_login(self.user)
+
+        new_location = LocationFactory()
+        self.location.save()
+
+        response = self.client.get(self.url + "?ordering=updated_at_desc")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert (
+            data[0]["operator_reference"] == self.location.operator.reference
+        )
+        assert data[1]["operator_reference"] == new_location.operator.reference
+
+    @skip("Skipping while this functionality is incomplete.")
+    def test_location_list_view__order_by_coordinates(self):
+        self.client.force_login(self.user)
+
+        new_location = LocationFactory()
+        lon = new_location.coordinates.lon
+        lat = new_location.coordinates.lon
+
+        response = self.client.get(
+            self.url + f"?order_by_coordinates={lon},{lat}"
+        )
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data[0]["operator_reference"] == new_location.operator.reference
+        assert (
+            data[1]["operator_reference"] == self.location.operator.reference
+        )
 
 
 @pytest.mark.django_db

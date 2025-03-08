@@ -1,5 +1,7 @@
-from django.db import models
+from django.contrib.gis.db import models
 from django.db.models import UniqueConstraint
+
+from src.task.base_models import TimeStampedModel
 
 
 class Coordinates(models.Model):
@@ -25,12 +27,18 @@ class Operator(models.Model):
 class Country(models.Model):
     reference = models.CharField(max_length=100, unique=True)
 
+    class Meta:
+        verbose_name_plural = "countries"
+
     def __str__(self):
         return self.reference
 
 
-class Location(models.Model):
+class Location(TimeStampedModel):
     reference = models.CharField(max_length=100, unique=True)
+    # FIXME: This isn't currently working.
+    #  (see __0004_coordinates_as_point_field.py)
+    # coordinates = models.PointField()
     coordinates = models.OneToOneField(Coordinates, on_delete=models.CASCADE)
     operator = models.ForeignKey(
         Operator, related_name="locations", null=True, on_delete=models.CASCADE

@@ -57,3 +57,13 @@ Initial bullet points (to expand on later!). I have:
 - Added the data to my local root directory, so it would be on the volume for the container to access.
 - Added said data folder to the .gitignore.
 - (Manually tested as I went - the command through Docker and the views with cURL.)
+
+### Getting serious
+Initial bullet points. I have:
+- Added a TimeStampedModel base for the Location model, so we can filter later by created/updated.
+- Added the django_filters library.
+- Created a simple filter set for the locations view (pausing the proximity ordering for later).
+- Registered the relevant models on the Django admin.
+- Updated the Country model Meta so that it doesn't present as "Countrys".
+- Done some discovery on GeoDjango to understand how best to implement the proximity ordering.
+- Attempted to migrate the coordinates field to a PointField (which I couldn't get to work in time).
