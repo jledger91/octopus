@@ -43,3 +43,17 @@ Additional arguments may be provided to some commands by providing the `ARGS=""`
 - Rebuild and re-run the application in detached mode: `make up ARGS="--build --detach"`
 - Running a specific test file: `make test ARGS="path/to/test.py"`
 - Running tests matching a keyword: `make test ARGS="-k test_specific_test_case"`
+
+## Solution Notes
+
+### MVP
+Initial bullet points (to expand on later!). I have:
+- Modified settings to include the task app.
+- Added django-extensions for shell_plus when playing with data importing.
+- Created a management command to import and process the data.
+- Created model to persist the data.
+- Created REST views/serializers to expose this data.
+- Written tests for the above.
+- Added the data to my local root directory, so it would be on the volume for the container to access.
+- Added said data folder to the .gitignore.
+- (Manually tested as I went - the command through Docker and the views with cURL.)
