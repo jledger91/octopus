@@ -45,25 +45,73 @@ Additional arguments may be provided to some commands by providing the `ARGS=""`
 - Running tests matching a keyword: `make test ARGS="-k test_specific_test_case"`
 
 ## Solution Notes
+Placing thoughts I had on the task in this section! I time-boxed myself to the four hours and managed to get most of the
+way through the second stage, with some caveats that I'll dig into.
+
+You can also find TODOs in the code with thoughts I have about more granular aspects.
 
 ### MVP
-Initial bullet points (to expand on later!). I have:
-- Modified settings to include the task app.
-- Added django-extensions for shell_plus when playing with data importing.
-- Created a management command to import and process the data.
-- Created model to persist the data.
-- Created REST views/serializers to expose this data.
-- Written tests for the above.
-- Added the data to my local root directory, so it would be on the volume for the container to access.
-- Added said data folder to the .gitignore.
-- (Manually tested as I went - the command through Docker and the views with cURL.)
+For the first section, I took a look at the expected output on the task sheet, as well as the glossary, to create the
+model structure. (I realised part of the way through the stage 2 that creating a whole model for coordinates was 
+overkill, as I'm a little unfamiliar with GeoDjango. This became more understood to me approaching the coordinates 
+proximity ordering. I'd have likely saved myself some trouble had I made them a `PointField` on `Location`!)
+
+I then created a management command to import and process the data, looking through the test data to see how to extract
+relevant fields and create model instances. The script is absent of any error handling, primarily because I didn't want
+to spend too much time trying to account for model errors, but normally we'd want to ensure it was robust against poor
+data shapes! (Pydantic is great for validating errors and reporting them back effectively.) There's some basic logging
+in there to help demonstrate the task is actually running, too. It's probably not the most performant it could be, as
+we're making lots of DB calls (something ideally mitigated by bulk creation), but as there are foreign keys, this could
+become unwieldy. We'd need to ensure that any foreign key instances to a location were saved before the bulk create (as
+well as update the unsaved location references to the now-saved keys). It felt like a problem that could take up a lot
+of the time, so I decided to document it here instead.
+
+I wrote some generic views for the `location` and `locations` endpoints. I would have probably gone with a `ViewSet` had
+it not been explicitly requested that we have the specific endpoint names, as there's a bit of duplication in there, but
+I figured keeping exact to the outlined requirements was the most important factor. The endpoints do require
+authentication, of course (an assumption).
+
+I then wrote the necessary serializers to achieve the expected response data, which was pretty straightforward. I then
+wrote the tests for everything (they're not the prettiest tests ever, but I didn't want to spend too much time making
+them pretty, to save more for the good stuff in the next section!) The test for the management command would want a
+proper fixture and more thorough checking of model instances, but (again) in the interest of time, I opted for a simpler
+test.
+
+Did some manual testing with the provided data, adding it to the docker containing, running the command and then calling
+the views with cURL (I removed the view permissions for ease for that bit).
 
 ### Getting serious
-Initial bullet points. I have:
-- Added a TimeStampedModel base for the Location model, so we can filter later by created/updated.
-- Added the django_filters library.
-- Created a simple filter set for the locations view (pausing the proximity ordering for later).
-- Registered the relevant models on the Django admin.
-- Updated the Country model Meta so that it doesn't present as "Countrys".
-- Done some discovery on GeoDjango to understand how best to implement the proximity ordering.
-- Attempted to migrate the coordinates field to a PointField (which I couldn't get to work in time).
+For this section I knew that the ordering by proximity to a set of coordinates would be the most timely part, so I set
+it aside to quickly make the Admin. I did notice that the page was displaying Countries as "Countrys", so I updated the
+model's verbose plural name.
+
+I added the `django_filters` package so that I could create a quick filter set for the locations view. The country and
+operator reference were easy enough, as they just needed to point to the reference field, but the ordering by created/
+updated at required updating the model. I chose to make an abstract model, as this is likely something we'd want to
+re-use.
+
+By this point, I was running low on time, so when I was doing some research on how to best go about the ordering by
+proximity to a given set oif coordinates, I realised that PostGIS was already the Docker image being used for the DB on 
+the `docker-compose.yml`, and so I revised my initial approach to coordinates. I decided these would have been better
+served as a `PointField`, and then we annotate the queryset with the calculated distance from the given point, and then 
+order by that value. The migration to a point field prove tricky, however, and I unfortunately ran out of time before I
+could get it to work, but I would otherwise have researched if there was anything I was missing in my conversion, and 
+read the GeoDjango docs for more background on the library.
+
+I wrote a test anyway to demonstrate the expected output, which is currently skipped as the functionality is incomplete.
+I feel like with an extra hour, I'd be there!
+
+### Advanced
+While I didn't ge to this section, I did give it a read at the beginning and have thoughts about how I might approach
+it after attempting the other sections.
+
+I'd obviously need start by adding the new fields `access_type` and `is_integrated` to the `Location` model.
+
+I'd then create a new management command to process the supplementing data, attempting to retrieve an existing location
+via the matching of the address or operator reference. We may need to fuzzy match the address, if we wanted to account
+for formatting differences. For the coordinates, we can follow the same pattern as the idea in section 2, where we
+create a `Point` from the coordinates and attempt to retrieve any locations in the db within 10m, using `Distance`.
+
+If no match is found, we'd need to create fresh model instances, with `is_integrated=False`. 
+
+(We might also want to check if the supplementing data contains extra EVSEs or connectors and update accordingly?)
